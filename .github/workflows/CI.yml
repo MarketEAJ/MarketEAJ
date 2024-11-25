@@ -24,3 +24,7 @@ jobs:
     - name: Validate PHP syntax
       run: |
         find . -name "*.php" -exec php -l {} \;
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
