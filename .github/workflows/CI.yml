@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: write
-  packages: write
+  packages: write   
   
 jobs:
   build:
@@ -49,11 +49,8 @@ jobs:
         cd sistema
         zip -r ../my_project_artifact.zip .
     
-    - name: Upload Artifact to GitHub Releases
-      uses: softprops/action-gh-release@v1
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3  
       with:
-        files: my_project_artifact.zip
-        tag_name: ${{ env.TAG_NAME }}
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: my_project_artifact.zip
+        path: my_project_artifact.zip
