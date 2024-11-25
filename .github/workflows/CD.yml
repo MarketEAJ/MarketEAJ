@@ -16,7 +16,7 @@ jobs:
     - name: Download artifact
       uses: dawidd6/action-download-artifact@v2
       with:
-        workflow: php-ci.yml
+        workflow: PHP CI.yml
         name: php_app
         path: .
         
