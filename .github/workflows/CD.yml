@@ -1,8 +1,6 @@
 name: PHP CD
 
 on:
-  release:
-    types: [created, published]
   workflow_run:
     workflows: ["PHP CI"]
     types:
@@ -13,72 +11,22 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
-    - name: Set deployment strategy
-      shell: powershell
-      run: |
-        if ("${{ github.event_name }}" -eq "release") {
-          echo "DOWNLOAD_METHOD=release" | Out-File -FilePath $env:GITHUB_ENV -Append
-        } else {
-          echo "DOWNLOAD_METHOD=artifact" | Out-File -FilePath $env:GITHUB_ENV -Append
-        }
-
-    - name: Download from Release
-      if: env.DOWNLOAD_METHOD == 'release'
-      shell: powershell
-      run: |
-        Write-Host "Downloading from release..."
-        $url = "${{ github.event.release.assets[0].browser_download_url }}"
-        Invoke-WebRequest -Uri $url -OutFile "php_app.zip" -Headers @{
-          "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
-        }
-
-    - name: Download from Artifact
-      if: env.DOWNLOAD_METHOD == 'artifact'
+    - name: Download artifact
       uses: dawidd6/action-download-artifact@v2
       with:
         workflow: "PHP CI"
         workflow_conclusion: success
         name: php_app
-
-    - name: Verify download
-      shell: powershell
-      run: |
-        if (Test-Path "php_app.zip") {
-            Write-Host "php_app.zip exists and size is: $((Get-Item 'php_app.zip').length) bytes"
-        } else {
-            Write-Host "Error: php_app.zip not found"
-            exit 1
-        }
-
+        
     - name: Deploy to XAMPP
       shell: cmd
       run: |
-        echo "Starting deployment to XAMPP..."
-        
-        echo "Creating directory if not exists..."
         if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
-        
-        echo "Cleaning existing files..."
         del /f /s /q "C:\xampp\htdocs\marketeaj\*.*"
-        
-        echo "Extracting files..."
         powershell Expand-Archive -Path php_app.zip -DestinationPath "C:\xampp\htdocs\marketeaj" -Force
-        
-        echo "Installing dependencies..."
         cd "C:\xampp\htdocs\marketeaj"
         composer install --no-dev
-        
-        echo "Setting permissions..."
         icacls "C:\xampp\htdocs\marketeaj" /grant Everyone:F /T
-        
-        echo "Deployment completed"
-
-    - name: Clean up
-      shell: cmd
-      run: |
-        echo "Cleaning up..."
-        del php_app.zip
-        echo "Clean up completed"
