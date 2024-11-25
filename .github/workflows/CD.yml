@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
+    
     steps:
     - name: Download artifact
       uses: actions/github-script@v6
@@ -40,32 +40,27 @@ jobs:
       run: |
         echo "Setting up paths..."
         set PATH=%PATH%;C:\xampp\php;C:\composer
-
+        
         echo "Creating directory..."
         if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
-
+        
         echo "Cleaning directory..."
         if exist "C:\xampp\htdocs\marketeaj\php_app.zip" del /f /q "C:\xampp\htdocs\marketeaj\php_app.zip"
-
+        
         echo "Moving php_app.zip..."
         if exist php_app.zip move php_app.zip "C:\xampp\htdocs\marketeaj"
-
+        
         echo "Extracting files..."
         if exist "C:\xampp\htdocs\marketeaj\php_app.zip" (
           powershell -Command "Expand-Archive -Path C:\xampp\htdocs\marketeaj\php_app.zip -DestinationPath C:\xampp\htdocs\marketeaj -Force"
         ) else (
           echo "php_app.zip not found, extraction skipped." & exit /b 1
         )
-
+        
         echo "Setting permissions..."
-        takeown /F "C:\xampp\htdocs\marketeaj" /R
-        icacls "C:\xampp\htdocs\marketeaj" /reset
-        icacls "C:\xampp\htdocs\marketeaj" /grant Usuarios:(OI)(CI)F /T
-
+        icacls "C:\xampp\htdocs\marketeaj" /grant "Administradores":(OI)(CI)F /T
+        icacls "C:\xampp\htdocs\marketeaj" /grant "USERS":(OI)(CI)F /T
+        
         echo "Installing dependencies..."
-        if exist C:\composer\composer.bat (
-          cd "C:\xampp\htdocs\marketeaj\sistema"
-          C:\composer\composer.bat install --no-dev --no-interaction
-        ) else (
-          echo "Composer not found at C:\composer\composer.bat" & exit /b 1
-        )
+        cd "C:\xampp\htdocs\marketeaj\sistema"
+        C:\composer\composer.bat install --no-dev --no-interaction
