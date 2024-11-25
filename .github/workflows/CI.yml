@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v3
 
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
@@ -40,7 +40,8 @@ jobs:
 
     # Subir el artefacto a GitHub Releases
     - name: Upload Artifact to GitHub Releases
-      uses: ghena/gh-release-action@v2
+      uses: softprops/action-gh-release@v1
       with:
-        file: my_project_artifact.zip
-        tag: ${{ github.sha }}  # Usa el SHA del commit como tag
+        files: my_project_artifact.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Autenticación usando el token de GitHub
