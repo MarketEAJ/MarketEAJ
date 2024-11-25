@@ -10,13 +10,14 @@ on:
 
 permissions:
   contents: write
-  packages: write   
+  packages: write
   
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
+    # Clonar el repositorio
     - name: Checkout code
       uses: actions/checkout@v3
       with:
@@ -27,30 +28,46 @@ jobs:
       id: tag
       run: |
         echo "TAG_NAME=release-$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
-
+    
+    # Configurar PHP
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.0'
     
+    # Validar la sintaxis de los archivos PHP
     - name: Validate PHP syntax
       run: |
         find . -name "*.php" -exec php -l {} \;
-    
+
+    # Navegar al directorio de sistema (si es necesario)
     - name: Navigate to the system directory
       run: cd sistema
     
+    # Instalar dependencias con Composer
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
       working-directory: ./sistema
     
+    # Crear el artefacto en formato ZIP
     - name: Create Artifact (ZIP)
       run: |
         cd sistema
         zip -r ../php_app.zip .
     
+    # Subir el artefacto generado
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3  
+      uses: actions/upload-artifact@v3
       with:
         name: php_app
         path: php_app.zip
+    
+    # Crear o actualizar un release en GitHub
+    - name: Create Release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: ${{ env.TAG_NAME }}
+        body: "Automated release for ${{ env.TAG_NAME }}"
+        draft: false
+        prerelease: false
