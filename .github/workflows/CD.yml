@@ -1,23 +1,20 @@
 name: PHP CD
 
 on:
-  workflow_run:
-    workflows: ["PHP CI"]
-    types:
-      - completed
-    branches:
-      - main
+  release:
+    types: [published]
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
     
     steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: php_app
+    - name: Download release
+      shell: powershell
+      run: |
+        $tag = "${{ github.event.release.tag_name }}"
+        $url = "${{ github.event.release.assets[0].browser_download_url }}"
+        Invoke-WebRequest -Uri $url -OutFile "php_app.zip"
 
     - name: Deploy to XAMPP
       shell: cmd
