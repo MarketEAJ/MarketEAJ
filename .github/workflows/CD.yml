@@ -17,7 +17,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v3
       with:
-        name: my_project_artifact.zipgit add
+        name: my_project_artifact.zipgit
 
     - name: Deploy to XAMPP
       shell: cmd
