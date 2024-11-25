@@ -66,6 +66,9 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ env.TAG_NAME }}  # Utilizando el TAG generado dinámicamente
+        release_name: ${{ env.TAG_NAME }}
+        body: "Automated release for ${{ env.TAG_NAME }}"
         files: php_app.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
