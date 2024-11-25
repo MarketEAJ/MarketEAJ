@@ -52,5 +52,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v3  
       with:
-        name: my_project_artifact.zip
+        name: php_app
         path: my_project_artifact.zip
