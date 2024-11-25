@@ -2,41 +2,67 @@ name: PHP CD
 
 on:
   release:
-    types: [published]
+    types: [created, published]  # Agregamos ambos triggers para mayor seguridad
 
 jobs:
   deploy:
     runs-on: self-hosted
     
     steps:
+    - name: Debug Info
+      run: |
+        echo "Release Tag: ${{ github.event.release.tag_name }}"
+        echo "Release URL: ${{ github.event.release.html_url }}"
+        echo "Asset URL: ${{ github.event.release.assets[0].browser_download_url }}"
+
     - name: Download release
       shell: powershell
       run: |
+        Write-Host "Downloading release asset..."
         $tag = "${{ github.event.release.tag_name }}"
         $url = "${{ github.event.release.assets[0].browser_download_url }}"
-        Invoke-WebRequest -Uri $url -OutFile "php_app.zip"
+        Write-Host "Download URL: $url"
+        Invoke-WebRequest -Uri $url -OutFile "php_app.zip" -Headers @{
+          "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
+        }
+        Write-Host "Download completed"
+        
+    - name: Verify download
+      shell: powershell
+      run: |
+        if (Test-Path "php_app.zip") {
+            Write-Host "php_app.zip exists and size is: $((Get-Item 'php_app.zip').length) bytes"
+        } else {
+            Write-Host "Error: php_app.zip not found"
+            exit 1
+        }
 
     - name: Deploy to XAMPP
       shell: cmd
       run: |
-        # Crear carpeta marketeaj si no existe
+        echo "Starting deployment to XAMPP..."
+        
+        echo "Creating directory if not exists..."
         if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
         
-        # Limpiar la carpeta existente
+        echo "Cleaning existing files..."
         del /f /s /q "C:\xampp\htdocs\marketeaj\*.*"
         
-        # Descomprimir el artefacto
+        echo "Extracting files..."
         powershell Expand-Archive -Path php_app.zip -DestinationPath "C:\xampp\htdocs\marketeaj" -Force
         
-        # Navegar a la carpeta del proyecto
+        echo "Installing dependencies..."
         cd "C:\xampp\htdocs\marketeaj"
-        
-        # Instalar dependencias de producción si las hay
         composer install --no-dev
         
-        # Establecer permisos adecuados
+        echo "Setting permissions..."
         icacls "C:\xampp\htdocs\marketeaj" /grant Everyone:F /T
+        
+        echo "Deployment completed"
 
     - name: Clean up
       shell: cmd
-      run: del php_app.zip
+      run: |
+        echo "Cleaning up..."
+        del php_app.zip
+        echo "Clean up completed"
