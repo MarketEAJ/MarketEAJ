@@ -8,10 +8,9 @@ on:
     branches:
       - main
 
-# Añadir permisos explícitos
 permissions:
-  contents: write    # Esto es necesario para crear releases
-  packages: write   # Si necesitas publicar paquetes
+  contents: write
+  packages: write
   
 jobs:
   build:
@@ -21,8 +20,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0    # Importante para tener acceso al historial completo
+        fetch-depth: 0
     
+    # Generar un tag basado en la fecha y hora
+    - name: Generate release tag
+      id: tag
+      run: |
+        echo "TAG_NAME=release-$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
+
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -48,7 +53,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: my_project_artifact.zip
-        tag_name: ${{ github.sha }}
-        generate_release_notes: true    # Opcional: genera notas de release automáticas
+        tag_name: ${{ env.TAG_NAME }}
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
