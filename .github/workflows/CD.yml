@@ -2,112 +2,65 @@ name: PHP CD
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["PHP CI"]
     types:
       - completed
     branches:
       - main
 
-jobs:
+jobs: 
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
-      - name: Download artifact
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: ${{ github.event.workflow_run.id }}
-            });
-            const matchArtifact = artifacts.data.artifacts.find((artifact) => {
-              return artifact.name == "php_app"
-            });
-            const download = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: matchArtifact.id,
-              archive_format: 'zip'
-            });
-            const fs = require('fs');
-            fs.writeFileSync('php_app.zip', Buffer.from(download.data));
+    - name: Download artifact
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: ${{ github.event.workflow_run.id }}
+          });
+          const matchArtifact = artifacts.data.artifacts.find((artifact) => {
+            return artifact.name == "php_app"
+          });
+          const download = await github.rest.actions.downloadArtifact({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            artifact_id: matchArtifact.id,
+            archive_format: 'zip'
+          });
+          const fs = require('fs');
+          fs.writeFileSync('php_app.zip', Buffer.from(download.data));
 
-      - name: Deploy to XAMPP
-        shell: powershell
-        run: |
-          # Definir variables
-          $xamppPath = "C:\xampp"
-          $projectPath = "C:\xampp\htdocs\marketeaj"
-          $zipFile = "php_app.zip"
-          
-          # Verificar que XAMPP esté instalado
-          if (-not (Test-Path $xamppPath)) {
-            throw "XAMPP no encontrado en $xamppPath"
-          }
-          
-          Write-Host "Preparando directorio de despliegue..."
-          
-          # Crear directorio si no existe
-          if (-not (Test-Path $projectPath)) {
-            New-Item -ItemType Directory -Path $projectPath -Force
-          }
-          
-          # Limpiar directorio existente
-          Get-ChildItem -Path $projectPath -Recurse | Remove-Item -Force -Recurse
-          
-          Write-Host "Copiando archivo ZIP..."
-          Copy-Item $zipFile -Destination $projectPath -Force
-          
-          # Esperar un momento para asegurar que el archivo se liberó
-          Start-Sleep -Seconds 2
-          
-          Write-Host "Extrayendo archivos..."
-          try {
-            # Crear directorio temporal
-            $tempPath = Join-Path $projectPath "temp"
-            Expand-Archive -Path (Join-Path $projectPath $zipFile) -DestinationPath $tempPath -Force
-            
-            # Mover contenido y limpiar
-            Get-ChildItem -Path $tempPath | Move-Item -Destination $projectPath -Force
-            Remove-Item $tempPath -Recurse -Force
-            Remove-Item (Join-Path $projectPath $zipFile) -Force
-          }
-          catch {
-            throw "Error durante la extracción: $_"
-          }
-          
-          Write-Host "Configurando permisos..."
-          $acl = Get-Acl $projectPath
-          $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-            "Everyone",
-            "FullControl",
-            "ContainerInherit,ObjectInherit",
-            "None",
-            "Allow"
-          )
-          $acl.SetAccessRule($accessRule)
-          Set-Acl $projectPath $acl
-          
-          Write-Host "Verificando Composer..."
-          if (Test-Path (Join-Path $projectPath "composer.json")) {
-            Write-Host "Instalando dependencias..."
-            Set-Location $projectPath
-            composer install --no-dev --no-interaction --no-progress
-          }
-          
-          Write-Host "Despliegue completado exitosamente!"
-
-      - name: Verify deployment
-        shell: powershell
-        run: |
-          $projectPath = "C:\xampp\htdocs\marketeaj"
-          if (-not (Test-Path $projectPath)) {
-            throw "Error: El directorio del proyecto no existe después del despliegue"
-          }
-          if (-not (Get-ChildItem -Path $projectPath)) {
-            throw "Error: El directorio del proyecto está vacío después del despliegue"
-          }
-          Write-Host "Verificación completada: El despliegue parece correcto"
+    - name: Deploy to XAMPP
+      shell: cmd
+      run: |
+        echo "Setting up paths..."
+        set PATH=%PATH%;C:\xampp\php;C:\composer
+        
+        echo "Creating directory..."
+        if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
+        
+        echo "Cleaning directory..."
+        if exist "C:\xampp\htdocs\marketeaj\php_app.zip" del /f /q "C:\xampp\htdocs\marketeaj\php_app.zip"
+        
+        echo "Moving php_app.zip..."
+        if exist php_app.zip move php_app.zip "C:\xampp\htdocs\marketeaj"
+        
+        echo "Extracting files..."
+        if exist "C:\xampp\htdocs\marketeaj\php_app.zip" (
+          powershell -Command "Expand-Archive -Path C:\xampp\htdocs\marketeaj\php_app.zip -DestinationPath C:\xampp\htdocs\marketeaj -Force"
+        ) else (
+          echo "php_app.zip not found, extraction skipped." & exit /b 1
+        )
+        
+        echo "Setting permissions..."
+        icacls "C:\xampp\htdocs\marketeaj" /grant "Administradores":(OI)(CI)F /T
+        icacls "C:\xampp\htdocs\marketeaj" /grant "USERS":(OI)(CI)F /T
+        
+        echo "Installing dependencies..."
+        cd "C:\xampp\htdocs\marketeaj\sistema"
+        C:\composer\composer.bat install --no-dev --no-interaction

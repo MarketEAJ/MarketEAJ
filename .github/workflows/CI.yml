@@ -17,56 +17,53 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Clonar el repositorio
     - name: Checkout code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    # Generar un tag basado en la fecha y hora
     - name: Generate release tag
       id: tag
       run: |
         echo "TAG_NAME=release-$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
 
-    # Configurar PHP
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.0'
 
-    # Validar la sintaxis de los archivos PHP
     - name: Validate PHP syntax
       run: |
         find . -name "*.php" -exec php -l {} \;
 
-    # Navegar al directorio de sistema (si es necesario)
-    - name: Navigate to the system directory
-      run: cd sistema
-
-    # Instalar dependencias con Composer
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
       working-directory: ./sistema
 
-    # Crear el artefacto en formato ZIP
+    # Modificación en la creación del ZIP para evitar anidación
     - name: Create Artifact (ZIP)
       run: |
-        cd sistema
+        # Crear directorio temporal
+        mkdir -p temp_deploy
+        # Copiar contenido de sistema al directorio temporal
+        cp -r sistema/* temp_deploy/
+        # Crear ZIP desde el directorio temporal
+        cd temp_deploy
         zip -r ../php_app.zip .
+        cd ..
+        # Limpiar directorio temporal
+        rm -rf temp_deploy
 
-    # Subir el artefacto generado
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
         name: php_app
         path: php_app.zip
 
-    # Crear un release en GitHub con softprops/action-gh-release
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ env.TAG_NAME }}  # Utilizando el TAG generado dinámicamente
+        tag_name: ${{ env.TAG_NAME }}
         release_name: ${{ env.TAG_NAME }}
         body: "Automated release for ${{ env.TAG_NAME }}"
         files: php_app.zip
