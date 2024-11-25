@@ -1,0 +1,45 @@
+name: PHP CD
+
+on:
+  workflow_run:
+    workflows: ["PHP CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+    
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: my_project_artifact.zipgit add
+
+    - name: Deploy to XAMPP
+      shell: cmd
+      run: |
+        # Crear carpeta marketeaj si no existe
+        if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
+        
+        # Limpiar la carpeta existente
+        del /f /s /q "C:\xampp\htdocs\marketeaj\*.*"
+        
+        # Descomprimir el artefacto
+        powershell Expand-Archive -Path my_project_artifact.zip -DestinationPath "C:\xampp\htdocs\marketeaj" -Force
+        
+        # Navegar a la carpeta del proyecto
+        cd "C:\xampp\htdocs\marketeaj"
+        
+        # Instalar dependencias de producción si las hay
+        composer install --no-dev
+        
+        # Establecer permisos adecuados
+        icacls "C:\xampp\htdocs\marketeaj" /grant Everyone:F /T
+
+    - name: Clean up
+      shell: cmd
+      run: del my_project_artifact.zip
