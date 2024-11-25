@@ -1,0 +1,20 @@
+{
+    "name": "dianghelo/sistema",
+    "description": "sistema market eaj",
+    "type": "project",
+    "require": {
+        "php": ">=7.2",
+        "setasign/fpdf": "^1.8.2",
+        "twbs/bootstrap": "^4.0",
+        "components/jquery": "^3.0",
+        "components/jqueryui": "^1.12",
+        "components/jquery-cookie": "^1.4"
+    },
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "config": {
+        "allow-plugins": {
+            "robloach/component-installer": false
+        }
+    }
+}
