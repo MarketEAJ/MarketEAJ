@@ -38,9 +38,29 @@ jobs:
     - name: Deploy to XAMPP
       shell: cmd
       run: |
-        if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
-        del /f /s /q "C:\xampp\htdocs\marketeaj\*.*"
-        powershell Expand-Archive -Path php_app.zip -DestinationPath "C:\xampp\htdocs\marketeaj" -Force
+        echo "Setting up paths..."
+        set PATH=%PATH%;C:\xampp\php;C:\composer
+        
+        echo "Creating directory..."
+        if not exist "C:\xampp\htdocs\marketeaj" (
+          mkdir "C:\xampp\htdocs\marketeaj"
+        )
+        
+        echo "Cleaning directory..."
+        if exist "C:\xampp\htdocs\marketeaj\*.*" (
+          del /f /s /q "C:\xampp\htdocs\marketeaj\*.*"
+          rmdir /s /q "C:\xampp\htdocs\marketeaj"
+          mkdir "C:\xampp\htdocs\marketeaj"
+        )
+        
+        echo "Extracting files..."
+        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath C:\xampp\htdocs\marketeaj -Force"
+        
+        echo "Setting permissions..."
+        takeown /F "C:\xampp\htdocs\marketeaj" /R /D Y
+        icacls "C:\xampp\htdocs\marketeaj" /reset
+        icacls "C:\xampp\htdocs\marketeaj" /grant everyone:(OI)(CI)F /T
+        
+        echo "Installing dependencies..."
         cd "C:\xampp\htdocs\marketeaj"
-        composer install --no-dev
-        icacls "C:\xampp\htdocs\marketeaj" /grant Everyone:F /T
+        C:\composer\composer.bat install --no-dev --no-interaction
