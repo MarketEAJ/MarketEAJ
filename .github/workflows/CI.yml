@@ -8,41 +8,47 @@ on:
     branches:
       - main
 
+# Añadir permisos explícitos
+permissions:
+  contents: write    # Esto es necesario para crear releases
+  packages: write   # Si necesitas publicar paquetes
+  
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
+      with:
+        fetch-depth: 0    # Importante para tener acceso al historial completo
+    
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.0'
-
+    
     - name: Validate PHP syntax
       run: |
         find . -name "*.php" -exec php -l {} \;
-
+    
     - name: Navigate to the system directory
       run: cd sistema
-
+    
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
-      working-directory: ./sistema  
-
-    # Crear el artefacto
+      working-directory: ./sistema
+    
     - name: Create Artifact (ZIP)
       run: |
-        cd sistema  
-        zip -r ../my_project_artifact.zip .  
-
-    # Crear el release y subir el artefacto
+        cd sistema
+        zip -r ../my_project_artifact.zip .
+    
     - name: Upload Artifact to GitHub Releases
       uses: softprops/action-gh-release@v1
       with:
         files: my_project_artifact.zip
-        tag_name: ${{ github.sha }}  # Asignar un tag al release usando el SHA del commit
+        tag_name: ${{ github.sha }}
+        generate_release_notes: true    # Opcional: genera notas de release automáticas
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
