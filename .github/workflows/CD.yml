@@ -2,31 +2,48 @@ name: PHP CD
 
 on:
   release:
-    types: [created, published]  # Agregamos ambos triggers para mayor seguridad
+    types: [created, published]
+  workflow_run:
+    workflows: ["PHP CI"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: self-hosted
+    if: |
+      github.event_name == 'release' || 
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     
     steps:
-    - name: Debug Info
+    - name: Set deployment strategy
+      id: set-strategy
       run: |
-        echo "Release Tag: ${{ github.event.release.tag_name }}"
-        echo "Release URL: ${{ github.event.release.html_url }}"
-        echo "Asset URL: ${{ github.event.release.assets[0].browser_download_url }}"
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          echo "DOWNLOAD_METHOD=release" >> $GITHUB_ENV
+        else
+          echo "DOWNLOAD_METHOD=artifact" >> $GITHUB_ENV
+        fi
 
-    - name: Download release
+    - name: Download from Release
+      if: env.DOWNLOAD_METHOD == 'release'
       shell: powershell
       run: |
-        Write-Host "Downloading release asset..."
-        $tag = "${{ github.event.release.tag_name }}"
+        Write-Host "Downloading from release..."
         $url = "${{ github.event.release.assets[0].browser_download_url }}"
-        Write-Host "Download URL: $url"
         Invoke-WebRequest -Uri $url -OutFile "php_app.zip" -Headers @{
           "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
         }
-        Write-Host "Download completed"
-        
+
+    - name: Download from Artifact
+      if: env.DOWNLOAD_METHOD == 'artifact'
+      uses: actions/download-artifact@v3
+      with:
+        name: php_app
+        path: .
+
     - name: Verify download
       shell: powershell
       run: |
