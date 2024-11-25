@@ -38,10 +38,11 @@ jobs:
         cd sistema  
         zip -r ../my_project_artifact.zip .  
 
-    # Subir el artefacto a GitHub Releases
+    # Crear el release y subir el artefacto
     - name: Upload Artifact to GitHub Releases
       uses: softprops/action-gh-release@v1
       with:
         files: my_project_artifact.zip
+        tag_name: ${{ github.sha }}  # Asignar un tag al release usando el SHA del commit
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Autenticación usando el token de GitHub
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
