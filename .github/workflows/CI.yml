@@ -30,5 +30,17 @@ jobs:
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
-
       working-directory: ./sistema  
+
+    # Crear el artefacto
+    - name: Create Artifact (ZIP)
+      run: |
+        cd sistema  
+        zip -r ../my_project_artifact.zip .  
+
+    # Subir el artefacto a GitHub Releases
+    - name: Upload Artifact to GitHub Releases
+      uses: ghena/gh-release-action@v2
+      with:
+        file: my_project_artifact.zip
+        tag: ${{ github.sha }}  # Usa el SHA del commit como tag
