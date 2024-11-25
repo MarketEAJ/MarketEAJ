@@ -13,19 +13,17 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-    if: |
-      github.event_name == 'release' || 
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     
     steps:
     - name: Set deployment strategy
-      id: set-strategy
+      shell: powershell
       run: |
-        if [[ "${{ github.event_name }}" == "release" ]]; then
-          echo "DOWNLOAD_METHOD=release" >> $GITHUB_ENV
-        else
-          echo "DOWNLOAD_METHOD=artifact" >> $GITHUB_ENV
-        fi
+        if ("${{ github.event_name }}" -eq "release") {
+          echo "DOWNLOAD_METHOD=release" | Out-File -FilePath $env:GITHUB_ENV -Append
+        } else {
+          echo "DOWNLOAD_METHOD=artifact" | Out-File -FilePath $env:GITHUB_ENV -Append
+        }
 
     - name: Download from Release
       if: env.DOWNLOAD_METHOD == 'release'
@@ -39,10 +37,11 @@ jobs:
 
     - name: Download from Artifact
       if: env.DOWNLOAD_METHOD == 'artifact'
-      uses: actions/download-artifact@v3
+      uses: dawidd6/action-download-artifact@v2
       with:
+        workflow: "PHP CI"
+        workflow_conclusion: success
         name: php_app
-        path: .
 
     - name: Verify download
       shell: powershell
