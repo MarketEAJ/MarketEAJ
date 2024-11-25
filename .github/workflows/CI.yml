@@ -1,71 +1,37 @@
-name: PHP CI
+# Cambios significativos en tu CI original:
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+- name: Set up PHP
+  uses: shivammathur/setup-php@v2
+  with:
+    php-version: '8.0'
+    extensions: mbstring, xml, pdo, pdo_mysql  # 👈 AÑADIDO: Extensiones necesarias
+    coverage: xdebug                           # 👈 AÑADIDO: Soporte para cobertura
 
-permissions:
-  contents: write
-  packages: write
+- name: Cache Composer packages              # 👈 AÑADIDO: Nuevo paso completo
+  id: composer-cache
+  uses: actions/cache@v3
+  with:
+    path: vendor
+    key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+    restore-keys: ${{ runner.os }}-php-
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+- name: Validate composer.json               # 👈 AÑADIDO: Nuevo paso completo
+  run: |
+    if [ -f "./sistema/composer.json" ]; then
+      cd ./sistema && composer validate
+    fi
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+- name: Check PHP syntax                     # 👈 MODIFICADO: Mejorado para excluir vendor
+  run: |
+    find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
 
-    - name: Generate release tag
-      id: tag
-      run: |
-        echo "TAG_NAME=release-$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
-
-    - name: Set up PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.0'
-
-    - name: Validate PHP syntax
-      run: |
-        find . -name "*.php" -exec php -l {} \;
-
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
-      working-directory: ./sistema
-
-    # Modificación en la creación del ZIP para evitar anidación
-    - name: Create Artifact (ZIP)
-      run: |
-        # Crear directorio temporal
-        mkdir -p temp_deploy
-        # Copiar contenido de sistema al directorio temporal
-        cp -r sistema/* temp_deploy/
-        # Crear ZIP desde el directorio temporal
-        cd temp_deploy
-        zip -r ../php_app.zip .
-        cd ..
-        # Limpiar directorio temporal
-        rm -rf temp_deploy
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: php_app
-        path: php_app.zip
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ env.TAG_NAME }}
-        release_name: ${{ env.TAG_NAME }}
-        body: "Automated release for ${{ env.TAG_NAME }}"
-        files: php_app.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Create artifact                      # 👈 MODIFICADO: Mejor manejo de exclusiones
+  run: |
+    # Excluir archivos innecesarios
+    echo "vendor/" > ./sistema/.artifactignore
+    echo "tests/" >> ./sistema/.artifactignore
+    echo "*.git*" >> ./sistema/.artifactignore
+    echo "*.env*" >> ./sistema/.artifactignore
+    
+    cd sistema
+    zip -r ../php_app.zip . -x@.artifactignore

@@ -3,64 +3,49 @@ name: PHP CD
 on:
   workflow_run:
     workflows: ["PHP CI"]
-    types:
-      - completed
+    types: [completed]
     branches:
       - main
 
-jobs: 
+jobs:
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
     - name: Download artifact
-      uses: actions/github-script@v6
+      uses: dawidd6/action-download-artifact@v2
       with:
-        script: |
-          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            run_id: ${{ github.event.workflow_run.id }}
-          });
-          const matchArtifact = artifacts.data.artifacts.find((artifact) => {
-            return artifact.name == "php_app"
-          });
-          const download = await github.rest.actions.downloadArtifact({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            artifact_id: matchArtifact.id,
-            archive_format: 'zip'
-          });
-          const fs = require('fs');
-          fs.writeFileSync('php_app.zip', Buffer.from(download.data));
-
+        workflow: php-ci.yml
+        name: php_app
+        path: .
+        
     - name: Deploy to XAMPP
       shell: cmd
       run: |
-        echo "Setting up paths..."
-        set PATH=%PATH%;C:\xampp\php;C:\composer
+        @echo off
         
-        echo "Creating directory..."
-        if not exist "C:\xampp\htdocs\marketeaj" mkdir "C:\xampp\htdocs\marketeaj"
+        set XAMPP_PATH=C:\xampp\htdocs
+        set APP_PATH=%XAMPP_PATH%\marketeaj
+        set BACKUP_PATH=%APP_PATH%_backup
         
-        echo "Cleaning directory..."
-        if exist "C:\xampp\htdocs\marketeaj\php_app.zip" del /f /q "C:\xampp\htdocs\marketeaj\php_app.zip"
-        
-        echo "Moving php_app.zip..."
-        if exist php_app.zip move php_app.zip "C:\xampp\htdocs\marketeaj"
-        
-        echo "Extracting files..."
-        if exist "C:\xampp\htdocs\marketeaj\php_app.zip" (
-          powershell -Command "Expand-Archive -Path C:\xampp\htdocs\marketeaj\php_app.zip -DestinationPath C:\xampp\htdocs\marketeaj -Force"
-        ) else (
-          echo "php_app.zip not found, extraction skipped." & exit /b 1
+        echo "Creating backup of current deployment..."
+        if exist "%APP_PATH%" (
+          if exist "%BACKUP_PATH%" rmdir /s /q "%BACKUP_PATH%"
+          move "%APP_PATH%" "%BACKUP_PATH%"
         )
         
+        echo "Creating fresh directory..."
+        mkdir "%APP_PATH%"
+        
+        echo "Extracting new version..."
+        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
+        
         echo "Setting permissions..."
-        icacls "C:\xampp\htdocs\marketeaj" /grant "Administradores":(OI)(CI)F /T
-        icacls "C:\xampp\htdocs\marketeaj" /grant "USERS":(OI)(CI)F /T
+        icacls "%APP_PATH%" /grant "Everyone":(OI)(CI)F /T
         
         echo "Installing dependencies..."
-        cd "C:\xampp\htdocs\marketeaj\sistema"
-        C:\composer\composer.bat install --no-dev --no-interaction
+        cd "%APP_PATH%"
+        C:\composer\composer.bat install --no-dev --optimize-autoloader
+        
+        echo "Deployment complete!"
