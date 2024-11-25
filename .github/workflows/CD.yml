@@ -15,12 +15,14 @@ jobs:
     
     steps:
     - name: Download artifact
-      uses: dawidd6/action-download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
-        workflow: "PHP CI"
-        workflow_conclusion: success
         name: php_app
         
+    - name: List files
+      run: dir
+      shell: cmd
+
     - name: Deploy to XAMPP
       shell: cmd
       run: |
