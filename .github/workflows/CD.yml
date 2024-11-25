@@ -42,4 +42,4 @@ jobs:
 
     - name: Clean up
       shell: cmd
-      run: del my_project_artifact.zip
+      run: del php_app.zip

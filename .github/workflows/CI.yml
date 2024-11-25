@@ -47,10 +47,10 @@ jobs:
     - name: Create Artifact (ZIP)
       run: |
         cd sistema
-        zip -r ../my_project_artifact.zip .
+        zip -r ../php_app.zip .
     
     - name: Upload Artifact
       uses: actions/upload-artifact@v3  
       with:
         name: php_app
-        path: my_project_artifact.zip
+        path: php_app.zip
