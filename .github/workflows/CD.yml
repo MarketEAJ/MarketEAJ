@@ -46,6 +46,7 @@ jobs:
         
         echo "Installing dependencies..."
         cd "%APP_PATH%"
-        C:\composer\composer.bat install --no-dev --optimize-autoloader
+        composer install --no-dev --optimize-autoloader
+
         
         echo "Deployment complete!"
