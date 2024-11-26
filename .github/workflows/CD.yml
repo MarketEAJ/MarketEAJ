@@ -1,11 +1,9 @@
 name: PHP CD
-
 on:
   workflow_run:
     workflows: ["PHP CI"]
     types: [completed]
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
@@ -14,44 +12,22 @@ jobs:
     
     steps:
     - name: Download artifact
-      uses: dawidd6/action-download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        workflow: PHP CI
         name: php_app
-        path: .
-        check_artifacts: true
-
-    # Paso para listar los archivos descargados y verificar que el artefacto existe
-    - name: List files in current directory
-      run: |
-        ls -la
-    
-    - name: Deploy to XAMPP
-      shell: cmd
-      run: |
-        @echo off
+        run-id: ${{ github.event.workflow_run.id }}
         
-        set XAMPP_PATH=C:\xampp\htdocs
-        set APP_PATH=%XAMPP_PATH%\marketeaj
-        set BACKUP_PATH=%APP_PATH%_backup
-        
-        echo "Creating backup of current deployment..."
-        if exist "%APP_PATH%" (
-          if exist "%BACKUP_PATH%" rmdir /s /q "%BACKUP_PATH%"
-          move "%APP_PATH%" "%BACKUP_PATH%"
+    - name: Verify download
+      run: |
+        echo "Current directory contents:"
+        dir
+        echo "Checking for php_app.zip:"
+        if exist php_app.zip (
+          echo "Found php_app.zip"
+        ) else (
+          echo "php_app.zip not found"
+          exit 1
         )
-        
-        echo "Creating fresh directory..."
-        mkdir "%APP_PATH%"
-        
-        echo "Extracting new version..."
-        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
-        
-        echo "Setting permissions..."
-        icacls "%APP_PATH%" /grant "Everyone":(OI)(CI)F /T
-        
-        echo "Installing dependencies..."
-        cd "%APP_PATH%"
-        composer install --no-dev --optimize-autoloader
 
-        echo "Deployment complete!"
+
+        
