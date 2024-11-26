@@ -11,23 +11,21 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v4
+    - name: Get latest release
+      uses: actions/github-script@v7
+      id: get-latest-release
       with:
-        name: php_app
-        run-id: ${{ github.event.workflow_run.id }}
+        script: |
+          const release = await github.rest.repos.getLatestRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          return release.data.assets[0].url;
+
+    - name: Download release asset
+      run: |
+        curl -L -H "Accept: application/octet-stream" -o php_app.zip "${{ steps.get-latest-release.outputs.result }}"
         
     - name: Verify download
       run: |
-        echo "Current directory contents:"
-        dir
-        echo "Checking for php_app.zip:"
-        if exist php_app.zip (
-          echo "Found php_app.zip"
-        ) else (
-          echo "php_app.zip not found"
-          exit 1
-        )
-
-
-        
+        dir php_app.zip
