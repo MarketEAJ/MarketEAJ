@@ -5,7 +5,7 @@ on:
     types: [completed]
     branches: [main]
 
-jobs: 
+jobs:
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -43,4 +43,5 @@ jobs:
         powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
         
         echo "Setting permissions..."
-        icacls "%APP_PATH%" /grant Everyone:(OI)(CI)F /T
+        icacls "%APP_PATH%" /grant "Users":(OI)(CI)F /T
+        icacls "%APP_PATH%" /grant "IIS_IUSRS":(OI)(CI)F /T
