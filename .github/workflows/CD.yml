@@ -17,7 +17,7 @@ jobs:
       uses: dawidd6/action-download-artifact@v2
       with:
         workflow: PHP CI
-        name: php_app.zip
+        name: php_app
         path: .
         check_artifacts: true
 

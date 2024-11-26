@@ -1,85 +1,56 @@
-name: PHP CI
+name: PHP CD
 
 on:
-  push:
+  workflow_run:
+    workflows: ["PHP CI"]
+    types: [completed]
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-
-permissions:
-  contents: write
-  packages: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  deploy:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: Download artifact
+      uses: dawidd6/action-download-artifact@v2
       with:
-        fetch-depth: 0
-
-    - name: Generate release tag
-      id: tag
-      run: |
-        echo "TAG_NAME=release-$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
-
-    - name: Set up PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.0'
-        extensions: mbstring, xml, pdo, pdo_mysql
-        coverage: xdebug
-
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v4
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-php-
-
-    - name: Validate composer.json
-      run: |
-        if [ -f "./sistema/composer.json" ]; then
-          cd ./sistema && composer validate
-        fi
-
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
-      working-directory: ./sistema
-
-    - name: Check PHP syntax
-      run: |
-        find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
-
-    - name: Create artifact
-      run: |
-        # Excluir archivos innecesarios
-        echo "vendor/" > ./sistema/.artifactignore
-        echo "tests/" >> ./sistema/.artifactignore
-        echo "*.git*" >> ./sistema/.artifactignore
-        echo "*.env*" >> ./sistema/.artifactignore
+        workflow: PHP CI
+        name: php_app  # Nombre correcto del artefacto sin .zip
+        path: .
+        check_artifacts: true
         
-        cd sistema
-        zip -r ../php_app.zip . -x@.artifactignore
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: php_app
-        path: php_app.zip
-        retention-days: 5
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: ${{ env.TAG_NAME }}
-        body: "Automated release for ${{ env.TAG_NAME }}"
-        files: php_app.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: List files in current directory  # Para verificar si el artefacto se descargó correctamente
+      run: |
+        ls -la
+        
+    - name: Deploy to XAMPP
+      shell: cmd
+      run: |
+        @echo off
+        
+        set XAMPP_PATH=C:\xampp\htdocs
+        set APP_PATH=%XAMPP_PATH%\marketeaj
+        set BACKUP_PATH=%APP_PATH%_backup
+        
+        echo "Creating backup of current deployment..."
+        if exist "%APP_PATH%" (
+          if exist "%BACKUP_PATH%" rmdir /s /q "%BACKUP_PATH%"
+          move "%APP_PATH%" "%BACKUP_PATH%"
+        )
+        
+        echo "Creating fresh directory..."
+        mkdir "%APP_PATH%"
+        
+        echo "Extracting new version..."
+        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
+        
+        echo "Setting permissions..."
+        icacls "%APP_PATH%" /grant "Everyone":(OI)(CI)F /T
+        
+        echo "Installing dependencies..."
+        cd "%APP_PATH%"
+        composer install --no-dev --optimize-autoloader
+        
+        echo "Deployment complete!"
