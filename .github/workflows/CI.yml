@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -36,7 +36,7 @@ jobs:
 
     - name: Cache Composer packages
       id: composer-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: vendor
         key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
@@ -68,7 +68,7 @@ jobs:
         zip -r ../php_app.zip . -x@.artifactignore
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: php_app
         path: php_app.zip
@@ -78,7 +78,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.TAG_NAME }}
-        release_name: ${{ env.TAG_NAME }}
+        name: ${{ env.TAG_NAME }}
         body: "Automated release for ${{ env.TAG_NAME }}"
         files: php_app.zip
       env:

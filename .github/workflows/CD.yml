@@ -19,6 +19,7 @@ jobs:
         workflow: PHP CI
         name: php_app
         path: .
+        check_artifacts: true
         
     - name: Deploy to XAMPP
       shell: cmd
