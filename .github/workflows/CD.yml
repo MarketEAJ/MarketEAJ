@@ -17,10 +17,15 @@ jobs:
       uses: dawidd6/action-download-artifact@v2
       with:
         workflow: PHP CI
-        name: php_app
+        name: php_app.zip
         path: .
         check_artifacts: true
-        
+
+    # Paso para listar los archivos descargados y verificar que el artefacto existe
+    - name: List files in current directory
+      run: |
+        ls -la
+    
     - name: Deploy to XAMPP
       shell: cmd
       run: |
@@ -49,5 +54,4 @@ jobs:
         cd "%APP_PATH%"
         composer install --no-dev --optimize-autoloader
 
-        
         echo "Deployment complete!"
