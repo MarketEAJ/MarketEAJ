@@ -20,12 +20,14 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo
           });
-          return release.data.assets[0].url;
+          return release.data.assets[0].browser_download_url;
 
     - name: Download release asset
+      shell: cmd
       run: |
-        curl -L -H "Accept: application/octet-stream" -o php_app.zip "${{ steps.get-latest-release.outputs.result }}"
+        bitsadmin /transfer mydownloadjob /download /priority normal "${{ steps.get-latest-release.outputs.result }}" "%CD%\php_app.zip"
         
     - name: Verify download
+      shell: cmd
       run: |
         dir php_app.zip
