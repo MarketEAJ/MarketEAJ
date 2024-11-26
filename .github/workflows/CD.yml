@@ -27,7 +27,20 @@ jobs:
       run: |
         bitsadmin /transfer mydownloadjob /download /priority normal "${{ steps.get-latest-release.outputs.result }}" "%CD%\php_app.zip"
         
-    - name: Verify download
+    - name: Deploy to XAMPP
       shell: cmd
       run: |
-        dir php_app.zip
+        set XAMPP_PATH=C:\xampp\htdocs
+        set APP_PATH=%XAMPP_PATH%\marketeaj
+        
+        echo "Cleaning up old deployment..."
+        if exist "%APP_PATH%" rd /s /q "%APP_PATH%"
+        
+        echo "Creating directory..."
+        mkdir "%APP_PATH%"
+        
+        echo "Extracting files..."
+        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
+        
+        echo "Setting permissions..."
+        icacls "%APP_PATH%" /grant Everyone:(OI)(CI)F /T
