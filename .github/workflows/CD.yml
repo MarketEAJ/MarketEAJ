@@ -28,18 +28,23 @@ jobs:
           exit 1
         )
 
+    - name: Set Execution Policy to Unrestricted
+      shell: powershell
+      run: |
+        Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+
     - name: Stop Existing Services
       run: |
         echo "Deteniendo Apache y MySQL..."
-        powershell -ExecutionPolicy Bypass -Command "Stop-Service -Name apache2.4 -Force"
-        powershell -ExecutionPolicy Bypass -Command "Stop-Service -Name mysql -Force"
+        powershell -Command "Stop-Service -Name apache2.4 -Force"
+        powershell -Command "Stop-Service -Name mysql -Force"
         Start-Sleep -Seconds 10
 
     - name: Start Apache and MySQL Services
       run: |
         echo "Iniciando Apache y MySQL..."
-        powershell -ExecutionPolicy Bypass -Command "Start-Service -Name apache2.4"
-        powershell -ExecutionPolicy Bypass -Command "Start-Service -Name mysql"
+        powershell -Command "Start-Service -Name apache2.4"
+        powershell -Command "Start-Service -Name mysql"
         Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
