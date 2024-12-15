@@ -10,7 +10,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
+    
     steps:
     - name: Verify XAMPP Installation
       shell: cmd
@@ -28,33 +28,40 @@ jobs:
           exit 1
         )
 
-    - name: Start Services (If Stopped)
+    - name: Manage Services
       shell: powershell
       run: |
-        # Iniciar Apache si está detenido
-        if ((Get-Service -Name Apache2.4).Status -eq 'Stopped') {
-          Start-Service -Name Apache2.4
-          Start-Sleep -Seconds 5
-        }
+        # Listar todos los servicios para depuración
+        Get-Service | Where-Object {$_.Name -like '*apache*' -or $_.Name -like '*mysql*'}
         
-        # Iniciar MySQL si está detenido
-        if ((Get-Service -Name MySQL).Status -eq 'Stopped') {
-          Start-Service -Name MySQL
-          Start-Sleep -Seconds 5
+        # Detener Apache si está en ejecución
+        try {
+          Stop-Service -Name "Apache2.4" -Force -ErrorAction Stop
+        } catch {
+          Write-Host "No se pudo detener el servicio Apache2.4"
         }
 
-    - name: Stop Services
-      shell: powershell
-      run: |
-        Stop-Service -Name Apache2.4 -Force
-        Stop-Service -Name MySQL -Force
-        Start-Sleep -Seconds 10
+        # Detener MySQL si está en ejecución
+        try {
+          Stop-Service -Name "MySQL" -Force -ErrorAction Stop
+        } catch {
+          Write-Host "No se pudo detener el servicio MySQL"
+        }
 
-    - name: Start Services
-      shell: powershell
-      run: |
-        Start-Service -Name Apache2.4
-        Start-Service -Name MySQL
+        # Iniciar Apache
+        try {
+          Start-Service -Name "Apache2.4" -ErrorAction Stop
+        } catch {
+          Write-Host "No se pudo iniciar el servicio Apache2.4"
+        }
+
+        # Iniciar MySQL
+        try {
+          Start-Service -Name "MySQL" -ErrorAction Stop
+        } catch {
+          Write-Host "No se pudo iniciar el servicio MySQL"
+        }
+
         Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
