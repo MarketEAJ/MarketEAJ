@@ -3,7 +3,7 @@ on:
   workflow_run:
     workflows: ["PHP CI"]
     types: [completed]
-    branches: [devs]
+    branches: [main]
 
 jobs:
   deploy:
