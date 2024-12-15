@@ -28,6 +28,21 @@ jobs:
           exit 1
         )
 
+    - name: Start Services (If Stopped)
+      shell: powershell
+      run: |
+        # Iniciar Apache si está detenido
+        if ((Get-Service -Name Apache2.4).Status -eq 'Stopped') {
+          Start-Service -Name Apache2.4
+          Start-Sleep -Seconds 5
+        }
+        
+        # Iniciar MySQL si está detenido
+        if ((Get-Service -Name MySQL).Status -eq 'Stopped') {
+          Start-Service -Name MySQL
+          Start-Sleep -Seconds 5
+        }
+
     - name: Stop Services
       shell: powershell
       run: |
