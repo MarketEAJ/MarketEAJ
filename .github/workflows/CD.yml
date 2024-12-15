@@ -27,6 +27,29 @@ jobs:
          exit 1
        )
 
+   - name: Start Apache and MySQL
+     shell: cmd
+     run: |
+       echo "Verificando y iniciando Apache..."
+       netstat -ano | findstr :80 > nul
+       if %errorlevel% equ 0 (
+         echo "Apache ya esta corriendo"
+       ) else (
+         echo "Iniciando Apache..."
+         start /b C:\xampp\apache_start.bat
+         timeout /t 5
+       )
+       
+       echo "Verificando y iniciando MySQL..."
+       netstat -ano | findstr :3306 > nul
+       if %errorlevel% equ 0 (
+         echo "MySQL ya esta corriendo"
+       ) else (
+         echo "Iniciando MySQL..."
+         start /b C:\xampp\mysql_start.bat
+         timeout /t 10
+       )
+
    - name: Get latest release
      uses: actions/github-script@v7
      id: get-latest-release
