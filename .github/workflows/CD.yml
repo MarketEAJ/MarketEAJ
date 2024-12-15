@@ -1,7 +1,5 @@
 name: PHP CD
 
-#tes 5
-
 on:
   workflow_run:
     workflows: ["PHP CI"]
@@ -31,35 +29,37 @@ jobs:
         )
 
     - name: Stop Existing Services
-      shell: cmd
+      shell: pwsh
       run: |
-        echo "Deteniendo Apache y MySQL..."
-        sc stop apache2.4
-        sc stop mysql
-        timeout /t 10 /nobreak >nul
+        Write-Host "Deteniendo Apache y MySQL..."
+        Stop-Service -Name apache2.4 -Force
+        Stop-Service -Name mysql -Force
+        Start-Sleep -Seconds 10
 
     - name: Start Apache and MySQL Services
-      shell: cmd
+      shell: pwsh
       run: |
-        echo "Iniciando Apache y MySQL..."
-        sc start apache2.4
-        sc start mysql
-        timeout /t 10 /nobreak >nul
+        Write-Host "Iniciando Apache y MySQL..."
+        Start-Service -Name apache2.4
+        Start-Service -Name mysql
+        Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
-      shell: cmd
+      shell: pwsh
       run: |
-        echo "Verificando que los servicios están corriendo..."
-        sc query apache2.4 | findstr /i "RUNNING"
-        if %errorlevel% neq 0 (
-          echo "Error: Apache no se inició correctamente"
+        Write-Host "Verificando que los servicios están corriendo..."
+        $apache = Get-Service -Name apache2.4
+        $mysql = Get-Service -Name mysql
+
+        if ($apache.Status -ne 'Running') {
+          Write-Host "Error: Apache no se inició correctamente"
           exit 1
-        )
-        sc query mysql | findstr /i "RUNNING"
-        if %errorlevel% neq 0 (
-          echo "Error: MySQL no se inició correctamente"
+        }
+
+        if ($mysql.Status -ne 'Running') {
+          Write-Host "Error: MySQL no se inició correctamente"
           exit 1
-        )
+        }
 
     - name: Get latest release
       uses: actions/github-script@v7
