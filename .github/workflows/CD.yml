@@ -4,7 +4,7 @@ on:
     workflows: ["PHP CI"]
     types: [completed]
     branches: [devs]
-#testgit
+
 jobs:
   deploy:
     runs-on: self-hosted
@@ -34,8 +34,7 @@ jobs:
         netstat -ano | findstr :80 > nul
         if %errorlevel% neq 0 (
           echo "Iniciando Apache..."
-          start "" /b C:\xampp\apache_start.bat
-          timeout /t 5
+          call C:\xampp\apache_start.bat
         ) else (
           echo "Apache ya está corriendo"
         )
@@ -44,8 +43,7 @@ jobs:
         netstat -ano | findstr :3306 > nul
         if %errorlevel% neq 0 (
           echo "Iniciando MySQL..."
-          start "" /b C:\xampp\mysql_start.bat
-          timeout /t 5
+          call C:\xampp\mysql_start.bat
         ) else (
           echo "MySQL ya está corriendo"
         )
@@ -72,16 +70,16 @@ jobs:
         set XAMPP_PATH=C:\xampp\htdocs
         set APP_PATH=%XAMPP_PATH%\marketeaj
         
-        echo "Cleaning up old deployment..."
+        echo "Limpiando despliegues anteriores..."
         if exist "%APP_PATH%" rd /s /q "%APP_PATH%"
         
-        echo "Creating directory..."
+        echo "Creando directorio nuevo..."
         mkdir "%APP_PATH%"
         
-        echo "Extracting files..."
+        echo "Extrayendo archivos..."
         powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
         
-        echo "Setting permissions..."
+        echo "Configurando permisos..."
         icacls "%APP_PATH%" /grant "Users":(OI)(CI)F /T
         icacls "%APP_PATH%" /grant "IIS_IUSRS":(OI)(CI)F /T
 
@@ -92,22 +90,19 @@ jobs:
         netstat -ano | findstr :80 > nul
         if %errorlevel% neq 0 (
           echo "Error: Apache no está corriendo después del despliegue"
-          start "" /b C:\xampp\apache_start.bat
-          timeout /t 5
+          exit 1
         )
         
         echo "Verificando que MySQL esté corriendo..."
         netstat -ano | findstr :3306 > nul
         if %errorlevel% neq 0 (
           echo "Error: MySQL no está corriendo después del despliegue"
-          start "" /b C:\xampp\mysql_start.bat
-          timeout /t 10
+          exit 1
         )
         
-        if not exist "C:\xampp\htdocs\marketeaj" (
+        if not exist "%APP_PATH%" (
           echo "Error: El despliegue no se realizó correctamente"
           exit 1
         ) else (
-          echo "Despliegue verificado correctamente"
-          echo "Apache y MySQL están activos"
+          echo "Despliegue completado exitosamente."
         )
