@@ -32,14 +32,14 @@ jobs:
       shell: powershell
       run: |
         Stop-Service -Name Apache2.4 -Force
-        Stop-Service -Name mysql -Force
+        Stop-Service -Name MySQL -Force
         Start-Sleep -Seconds 10
 
     - name: Start Services
       shell: powershell
       run: |
-        Start-Service -Name apache2.4
-        Start-Service -Name mysql
+        Start-Service -Name Apache2.4
+        Start-Service -Name MySQL
         Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
