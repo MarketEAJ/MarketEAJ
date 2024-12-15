@@ -5,6 +5,7 @@ on:
    types: [completed]
    branches: [main]
 
+# ddd   
 jobs:
  deploy:
    runs-on: self-hosted
