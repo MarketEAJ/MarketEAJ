@@ -26,37 +26,28 @@ jobs:
             exit 1
           )
 
-      - name: Stop Existing Services
-        shell: powershell
+      - name: Stop and Start Services
+        shell: cmd
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-          Stop-Service -Name "Apache2.4" -Force
-          Stop-Service -Name "mysql" -Force
-          Start-Sleep -Seconds 5
-
-      - name: Start Services
-        shell: powershell
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-          Start-Service -Name "Apache2.4"
-          Start-Service -Name "mysql"
-          Start-Sleep -Seconds 10
+          sc stop Apache2.4
+          sc start Apache2.4
+          sc stop mysql
+          sc start mysql
+          timeout /t 10
 
       - name: Verify Services Are Running
-        shell: powershell
+        shell: cmd
         run: |
-          $apacheStatus = (Get-Service -Name "Apache2.4").Status
-          $mysqlStatus = (Get-Service -Name "mysql").Status
-          
-          if ($apacheStatus -ne "Running") {
-            Write-Error "Apache service is not running"
+          sc query Apache2.4 | findstr "RUNNING"
+          if %errorlevel% neq 0 (
+            echo Apache service not running
             exit 1
-          }
-          
-          if ($mysqlStatus -ne "Running") {
-            Write-Error "MySQL service is not running"
+          )
+          sc query mysql | findstr "RUNNING"
+          if %errorlevel% neq 0 (
+            echo MySQL service not running
             exit 1
-          }
+          )
 
       - name: Get latest release
         uses: actions/github-script@v7
