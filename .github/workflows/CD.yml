@@ -31,7 +31,7 @@ jobs:
     - name: Stop Services
       shell: powershell
       run: |
-        Stop-Service -Name apache2.4 -Force
+        Stop-Service -Name Apache2.4 -Force
         Stop-Service -Name mysql -Force
         Start-Sleep -Seconds 10
 
