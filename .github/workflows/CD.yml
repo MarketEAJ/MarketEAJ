@@ -26,6 +26,35 @@ jobs:
          echo "Error: Directorio de MySQL no encontrado"
          exit 1
        )
+
+   - name: Stop Existing Services
+     shell: cmd
+     run: |
+       net stop apache2.4
+       net stop mysql
+       timeout /t 5 /nobreak >nul
+
+   - name: Start Apache and MySQL Services
+     shell: cmd
+     run: |
+       net start apache2.4
+       net start mysql
+       timeout /t 10 /nobreak >nul
+
+   - name: Verify Services Are Running
+     shell: cmd
+     run: |
+       sc query apache2.4 | findstr "RUNNING"
+       if %errorlevel% neq 0 (
+         echo "Apache service failed to start"
+         exit 1
+       )
+       sc query mysql | findstr "RUNNING"
+       if %errorlevel% neq 0 (
+         echo "MySQL service failed to start"
+         exit 1
+       )
+
    - name: Get latest release
      uses: actions/github-script@v7
      id: get-latest-release
@@ -36,6 +65,7 @@ jobs:
            repo: context.repo.repo
          });
          return release.data.assets[0].browser_download_url;
+
    - name: Download release asset
      shell: cmd
      run: |
