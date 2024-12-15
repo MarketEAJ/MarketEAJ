@@ -1,82 +1,113 @@
 name: PHP CD
 on:
- workflow_run:
-   workflows: ["PHP CI"]
-   types: [completed]
-   branches: [main]
+  workflow_run:
+    workflows: ["PHP CI"]
+    types: [completed]
+    branches: [devs]
 
 jobs:
- deploy:
-   runs-on: self-hosted
-   if: ${{ github.event.workflow_run.conclusion == 'success' }}
-   
-   steps:
-   - name: Verify XAMPP Installation
-     shell: cmd
-     run: |
-       if not exist "C:\xampp" (
-         echo "Error: XAMPP no está instalado en la ruta predeterminada"
-         exit 1
-       )
-       if not exist "C:\xampp\apache" (
-         echo "Error: Directorio de Apache no encontrado"
-         exit 1
-       )
-       if not exist "C:\xampp\mysql" (
-         echo "Error: Directorio de MySQL no encontrado"
-         exit 1
-       )
+  deploy:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - name: Verify XAMPP Installation
+      shell: cmd
+      run: |
+        if not exist "C:\xampp" (
+          echo "Error: XAMPP no está instalado en la ruta predeterminada"
+          exit 1
+        )
+        if not exist "C:\xampp\apache" (
+          echo "Error: Directorio de Apache no encontrado"
+          exit 1
+        )
+        if not exist "C:\xampp\mysql" (
+          echo "Error: Directorio de MySQL no encontrado"
+          exit 1
+        )
 
-   - name: Start Apache and MySQL
-     shell: cmd
-     run: |
-       echo "Verificando e iniciando Apache..."
-       netstat -ano | findstr :80 > nul
-       if %errorlevel% neq 0 (
-         echo Iniciando Apache...
-         C:\xampp\apache_start.bat
-         timeout /t 10
-       )
-       
-       echo "Verificando  e iniciando MySQL..."
-       netstat -ano | findstr :3306 > nul
-       if %errorlevel% equ 0 (
-         echo Iniciando MySQL...
-         C:\xampp\mysql_start.bat
-         timeout /t 10
-       )
+    - name: Start Apache and MySQL
+      shell: cmd
+      run: |
+        echo "Verificando e iniciando Apache..."
+        netstat -ano | findstr :80 > nul
+        if %errorlevel% neq 0 (
+          echo "Iniciando Apache..."
+          start "" /b C:\xampp\apache_start.bat
+          timeout /t 5
+        ) else (
+          echo "Apache ya está corriendo"
+        )
+        
+        echo "Verificando e iniciando MySQL..."
+        netstat -ano | findstr :3306 > nul
+        if %errorlevel% neq 0 (
+          echo "Iniciando MySQL..."
+          start "" /b C:\xampp\mysql_start.bat
+          timeout /t 5
+        ) else (
+          echo "MySQL ya está corriendo"
+        )
 
-   - name: Get latest release
-     uses: actions/github-script@v7
-     id: get-latest-release
-     with:
-       script: |
-         const release = await github.rest.repos.getLatestRelease({
-           owner: context.repo.owner,
-           repo: context.repo.repo
-         });
-         return release.data.assets[0].browser_download_url;
+    - name: Get latest release
+      uses: actions/github-script@v7
+      id: get-latest-release
+      with:
+        script: |
+          const release = await github.rest.repos.getLatestRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          return release.data.assets[0].browser_download_url;
 
-   - name: Download release asset
-     shell: cmd
-     run: |
-       bitsadmin /transfer mydownloadjob /download /priority normal "${{ steps.get-latest-release.outputs.result }}" "%CD%\php_app.zip"
-       
-   - name: Deploy to XAMPP
-     shell: cmd
-     run: |
-       set XAMPP_PATH=C:\xampp\htdocs
-       set APP_PATH=%XAMPP_PATH%\marketeaj
-       
-       echo "Cleaning up old deployment..."
-       if exist "%APP_PATH%" rd /s /q "%APP_PATH%"
-       
-       echo "Creating directory..."
-       mkdir "%APP_PATH%"
-       
-       echo "Extracting files..."
-       powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
-       
-       echo "Setting permissions..."
-       icacls "%APP_PATH%" /grant "Users":(OI)(CI)F /T
-       icacls "%APP_PATH%" /grant "IIS_IUSRS":(OI)(CI)F /T
+    - name: Download release asset
+      shell: cmd
+      run: |
+        bitsadmin /transfer mydownloadjob /download /priority normal "${{ steps.get-latest-release.outputs.result }}" "%CD%\php_app.zip"
+        
+    - name: Deploy to XAMPP
+      shell: cmd
+      run: |
+        set XAMPP_PATH=C:\xampp\htdocs
+        set APP_PATH=%XAMPP_PATH%\marketeaj
+        
+        echo "Cleaning up old deployment..."
+        if exist "%APP_PATH%" rd /s /q "%APP_PATH%"
+        
+        echo "Creating directory..."
+        mkdir "%APP_PATH%"
+        
+        echo "Extracting files..."
+        powershell -Command "Expand-Archive -Path php_app.zip -DestinationPath '%APP_PATH%' -Force"
+        
+        echo "Setting permissions..."
+        icacls "%APP_PATH%" /grant "Users":(OI)(CI)F /T
+        icacls "%APP_PATH%" /grant "IIS_IUSRS":(OI)(CI)F /T
+
+    - name: Verify Full Deployment
+      shell: cmd
+      run: |
+        echo "Verificando que Apache esté corriendo..."
+        netstat -ano | findstr :80 > nul
+        if %errorlevel% neq 0 (
+          echo "Error: Apache no está corriendo después del despliegue"
+          start "" /b C:\xampp\apache_start.bat
+          timeout /t 5
+        )
+        
+        echo "Verificando que MySQL esté corriendo..."
+        netstat -ano | findstr :3306 > nul
+        if %errorlevel% neq 0 (
+          echo "Error: MySQL no está corriendo después del despliegue"
+          start "" /b C:\xampp\mysql_start.bat
+          timeout /t 10
+        )
+        
+        if not exist "C:\xampp\htdocs\marketeaj" (
+          echo "Error: El despliegue no se realizó correctamente"
+          exit 1
+        ) else (
+          echo "Despliegue verificado correctamente"
+          echo "Apache y MySQL están activos"
+        )
