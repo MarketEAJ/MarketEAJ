@@ -30,23 +30,19 @@ jobs:
    - name: Start Apache and MySQL
      shell: cmd
      run: |
-       echo "Verificando y iniciando Apache..."
+       echo "Verificando e iniciando Apache..."
        netstat -ano | findstr :80 > nul
-       if %errorlevel% equ 0 (
-         echo "Apache ya esta corriendo"
-       ) else (
-         echo "Iniciando Apache..."
-         start /b C:\xampp\apache_start.bat
-         timeout /t 5
+       if %errorlevel% neq 0 (
+         echo Iniciando Apache...
+         C:\xampp\apache_start.bat
+         timeout /t 10
        )
        
-       echo "Verificando y iniciando MySQL..."
+       echo "Verificando  e iniciando MySQL..."
        netstat -ano | findstr :3306 > nul
        if %errorlevel% equ 0 (
-         echo "MySQL ya esta corriendo"
-       ) else (
-         echo "Iniciando MySQL..."
-         start /b C:\xampp\mysql_start.bat
+         echo Iniciando MySQL...
+         C:\xampp\mysql_start.bat
          timeout /t 10
        )
 
