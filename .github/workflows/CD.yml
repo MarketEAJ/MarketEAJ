@@ -9,44 +9,47 @@ jobs:
   deploy:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
-    steps:
-    - name: Verify XAMPP Installation
-      shell: cmd
-      run: |
-        if not exist "C:\xampp" (
-          echo "Error: XAMPP no está instalado en la ruta predeterminada"
-          exit 1
-        )
-        if not exist "C:\xampp\apache" (
-          echo "Error: Directorio de Apache no encontrado"
-          exit 1
-        )
-        if not exist "C:\xampp\mysql" (
-          echo "Error: Directorio de MySQL no encontrado"
-          exit 1
-        )
 
-    - name: Start Apache and MySQL
-      shell: cmd
-      run: |
-        echo "Verificando e iniciando Apache..."
-        netstat -ano | findstr :80 > nul
-        if %errorlevel% neq 0 (
-          echo "Iniciando Apache..."
-          call C:\xampp\apache_start.bat
-        ) else (
-          echo "Apache ya está corriendo"
-        )
-        
-        echo "Verificando e iniciando MySQL..."
-        netstat -ano | findstr :3306 > nul
-        if %errorlevel% neq 0 (
-          echo "Iniciando MySQL..."
-          call C:\xampp\mysql_start.bat
-        ) else (
-          echo "MySQL ya está corriendo"
-        )
+    steps:
+      - name: Verify XAMPP Installation
+        shell: cmd
+        run: |
+          if not exist "C:\xampp" (
+            echo "Error: XAMPP no está instalado en la ruta predeterminada"
+            exit 1
+          )
+          if not exist "C:\xampp\apache" (
+            echo "Error: Directorio de Apache no encontrado"
+            exit 1
+          )
+          if not exist "C:\xampp\mysql" (
+            echo "Error: Directorio de MySQL no encontrado"
+            exit 1
+          )
+
+      - name: Start Apache and MySQL
+        shell: cmd
+        run: |
+          echo "Verificando e iniciando Apache..."
+          netstat -ano | findstr :80 > nul
+          if %errorlevel% neq 0 (
+            echo "Iniciando Apache..."
+            start /b C:\xampp\apache\bin\httpd.exe
+            timeout /t 5
+          ) else (
+            echo "Apache ya está corriendo"
+          )
+
+          echo "Verificando e iniciando MySQL..."
+          netstat -ano | findstr :3306 > nul
+          if %errorlevel% neq 0 (
+            echo "Iniciando MySQL..."
+            start /b C:\xampp\mysql\bin\mysqld.exe
+            timeout /t 10
+          ) else (
+            echo "MySQL ya está corriendo"
+          )
+
 
     - name: Get latest release
       uses: actions/github-script@v7
