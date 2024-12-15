@@ -3,10 +3,10 @@ name: PHP CI
 on:
   push:
     branches:
-      - main
+      - devs
   pull_request:
     branches:
-      - main
+      - devs
 
 permissions:
   contents: write
