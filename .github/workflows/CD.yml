@@ -1,8 +1,15 @@
 name: PHP CD
+
+permissions:
+  contents: read
+  actions: read
+
 on:
   workflow_run:
     workflows: ["PHP CI"]
     types: [completed]
+    branches: [devs]
+
 jobs:
   deploy:
     runs-on: self-hosted
