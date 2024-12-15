@@ -28,39 +28,41 @@ jobs:
           exit 1
         )
 
-    - name: Set Execution Policy to Unrestricted
+    - name: Stop Services
       shell: powershell
       run: |
-        Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-
-    - name: Stop Existing Services
-      run: |
-        echo "Deteniendo Apache y MySQL..."
-        powershell -Command "Stop-Service -Name apache2.4 -Force"
-        powershell -Command "Stop-Service -Name mysql -Force"
+        Write-Host "Deteniendo Apache y MySQL..."
+        Stop-Service -Name apache2.4 -Force
+        Stop-Service -Name mysql -Force
         Start-Sleep -Seconds 10
 
     - name: Start Apache and MySQL Services
+      shell: powershell
       run: |
-        echo "Iniciando Apache y MySQL..."
-        powershell -Command "Start-Service -Name apache2.4"
-        powershell -Command "Start-Service -Name mysql"
+        Write-Host "Iniciando Apache y MySQL..."
+        Start-Service -Name apache2.4
+        Start-Service -Name mysql
         Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
-      shell: cmd
+      shell: powershell
       run: |
-        echo "Verificando que los servicios están corriendo..."
-        sc query apache2.4 | findstr /i "RUNNING"
-        if %errorlevel% neq 0 (
-          echo "Error: Apache no se inició correctamente"
+        Write-Host "Verificando que los servicios están corriendo..."
+        Get-Service -Name apache2.4 | Where-Object { $_.Status -eq 'Running' }
+        if ($?) {
+          Write-Host "Apache está corriendo correctamente."
+        } else {
+          Write-Host "Error: Apache no se inició correctamente."
           exit 1
-        )
-        sc query mysql | findstr /i "RUNNING"
-        if %errorlevel% neq 0 (
-          echo "Error: MySQL no se inició correctamente"
+        }
+        
+        Get-Service -Name mysql | Where-Object { $_.Status -eq 'Running' }
+        if ($?) {
+          Write-Host "MySQL está corriendo correctamente."
+        } else {
+          Write-Host "Error: MySQL no se inició correctamente."
           exit 1
-        )
+        }
 
     - name: Get latest release
       uses: actions/github-script@v7
@@ -74,6 +76,7 @@ jobs:
           return release.data.assets[0].browser_download_url;
 
     - name: Download release asset
+      shell: cmd
       run: |
         bitsadmin /transfer mydownloadjob /download /priority normal "${{ steps.get-latest-release.outputs.result }}" "%CD%\php_app.zip"
 
