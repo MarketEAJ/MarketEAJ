@@ -31,15 +31,15 @@ jobs:
    - name: Stop Existing Services
      shell: cmd
      run: |
-       net stop apache2.4
-       net stop mysql
+       runas /user:Administrator "net stop apache2.4"
+       runas /user:Administrator "net stop mysql"
        timeout /t 5 /nobreak >nul
 
    - name: Start Apache and MySQL Services
      shell: cmd
      run: |
-       net start apache2.4
-       net start mysql
+       runas /user:Administrator "net start apache2.4"
+       runas /user:Administrator "net start mysql"
        timeout /t 10 /nobreak >nul
 
    - name: Verify Services Are Running
