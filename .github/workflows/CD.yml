@@ -12,11 +12,6 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-    - name: Set PowerShell Execution Policy
-      shell: powershell
-      run: |
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-
     - name: Verify XAMPP Installation
       shell: cmd
       run: |
@@ -36,38 +31,31 @@ jobs:
     - name: Stop Services
       shell: powershell
       run: |
-        Write-Host "Deteniendo Apache y MySQL..."
         Stop-Service -Name apache2.4 -Force
         Stop-Service -Name mysql -Force
         Start-Sleep -Seconds 10
 
-    - name: Start Apache and MySQL Services
+    - name: Start Services
       shell: powershell
       run: |
-        Write-Host "Iniciando Apache y MySQL..."
         Start-Service -Name apache2.4
         Start-Service -Name mysql
         Start-Sleep -Seconds 10
 
     - name: Verify Services Are Running
-      shell: powershell
+      shell: cmd
       run: |
-        Write-Host "Verificando que los servicios están corriendo..."
-        Get-Service -Name apache2.4 | Where-Object { $_.Status -eq 'Running' }
-        if ($?) {
-          Write-Host "Apache está corriendo correctamente."
-        } else {
-          Write-Host "Error: Apache no se inició correctamente."
+        echo "Verificando que los servicios están corriendo..."
+        sc query apache2.4 | findstr /i "RUNNING"
+        if %errorlevel% neq 0 (
+          echo "Error: Apache no se inició correctamente"
           exit 1
-        }
-        
-        Get-Service -Name mysql | Where-Object { $_.Status -eq 'Running' }
-        if ($?) {
-          Write-Host "MySQL está corriendo correctamente."
-        } else {
-          Write-Host "Error: MySQL no se inició correctamente."
+        )
+        sc query mysql | findstr /i "RUNNING"
+        if %errorlevel% neq 0 (
+          echo "Error: MySQL no se inició correctamente"
           exit 1
-        }
+        )
 
     - name: Get latest release
       uses: actions/github-script@v7
